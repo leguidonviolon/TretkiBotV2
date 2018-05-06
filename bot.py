@@ -3,10 +3,10 @@ from mysql.connector import errorcode
 
 
 sqlConfig = {
-    'user': 'Oniixon',
-    'password': 'tretki',
-    'host': '1818project.com',
-    'database': 'TretkiBot'
+    'user': '',
+    'password': '',
+    'host': '',
+    'database': ''
 }
 
 class Bot:
