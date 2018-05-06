@@ -1,7 +1,7 @@
 import bot
 
 clientId = ""
-secret = "Z"
+secret = ""
 userAgent = ""
 username = ""
 password = ""

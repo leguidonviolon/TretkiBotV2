@@ -30,8 +30,6 @@ class Bot:
                 print("Daytabse doesn't exist")
             else:
                 print(e)
-        else:
-            conn.close()
 
     def login(self):
         """  Login to reddit with the bot.
@@ -127,7 +125,7 @@ class Bot:
         pass
 
     def fetch_content(self):
-        pass
+        for c in self.session.
 
     def __repr__(self):
         self.__str__()
