@@ -1,4 +1,4 @@
-import praw, datetime, os, mysql.connector, connectionInfo
+import praw, datetime, os, mysql.connector, connectionInfo, dataFetcher
 from mysql.connector import errorcode
 
 class Bot:
@@ -117,8 +117,13 @@ class Bot:
         pass
 
     def fetch_content(self):
-        pass
-        #for c in self.session.
+        s = dataFetcher.DataFetcher(0, self.session, self.sub)
+        c = dataFetcher.DataFetcher(1, self.session, self.sub)
+        s.start()
+        c.start()
+
+        s.current_thread().rdy = False
+
 
     def __repr__(self):
         self.__str__()
