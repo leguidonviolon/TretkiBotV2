@@ -1,4 +1,4 @@
-import bot
+import bot, connectionInfo
 
 clientId = ""
 secret = ""
@@ -7,7 +7,7 @@ username = ""
 password = ""
 sub = ""
 
-mainBot = bot.Bot(clientId, secret, userAgent, username, password, sub)
+mainBot = bot.Bot(**connectionInfo.redditConnect)
 mainBot.login()
 
 #for c in mainBot.fetch_content():

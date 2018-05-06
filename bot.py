@@ -1,13 +1,5 @@
-import praw, datetime, os, mysql.connector
+import praw, datetime, os, mysql.connector, connectionInfo
 from mysql.connector import errorcode
-
-
-sqlConfig = {
-    'user': '',
-    'password': '',
-    'host': '',
-    'database': ''
-}
 
 class Bot:
 
@@ -22,7 +14,7 @@ class Bot:
         self.session = None  # the reddit instance
 
         try:
-            conn = mysql.connector.connect(**sqlConfig)
+            conn = mysql.connector.connect(**connectionInfo.sqlConnect)
         except mysql.connector.Error as e:
             if(e.errno==errorcode.ER_ACCESS_DENIED_ERROR):
                 print("Wrong username/password combination")
@@ -125,7 +117,8 @@ class Bot:
         pass
 
     def fetch_content(self):
-        for c in self.session.
+        pass
+        #for c in self.session.
 
     def __repr__(self):
         self.__str__()
