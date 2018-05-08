@@ -1,4 +1,4 @@
-import praw, datetime, os, mysql.connector, connectionInfo, dataFetcher
+import praw, datetime, os, mysql.connector, connectionInfo
 from mysql.connector import errorcode
 
 class Bot:
@@ -14,12 +14,12 @@ class Bot:
         self.session = None  # the reddit instance
 
         try:
-            conn = mysql.connector.connect(**connectionInfo.sqlConnect)
+            self.conn = mysql.connector.connect(**connectionInfo.sqlConnect)
         except mysql.connector.Error as e:
             if(e.errno==errorcode.ER_ACCESS_DENIED_ERROR):
                 print("Wrong username/password combination")
             elif(e.errno==errorcode.ER_BAD_DB_ERROR):
-                print("Daytabse doesn't exist")
+                print("Database doesn't exist")
             else:
                 print(e)
 
@@ -117,12 +117,57 @@ class Bot:
         pass
 
     def fetch_content(self):
-        s = dataFetcher.DataFetcher(0, self.session, self.sub)
-        c = dataFetcher.DataFetcher(1, self.session, self.sub)
-        s.start()
-        c.start()
+        """ Fetches all the last comments and submissions of the subreddit and returns two lists containing them.
+                return:
+                    comments (list): the list of all the fetched comments
+                    submissions (list): the list of all the fetched submissions
+        """
 
-        s.current_thread().rdy = False
+        comments = []
+        submissions = []
+
+        if(self.conn):
+            cursor = self.conn.cursor()
+
+            query = ("SELECT lastCommentChecked, lastPostChecked FROM botInfo")
+
+            cursor.execute(query)
+
+            for (lastCommentChecked, lastPostChecked) in cursor:
+                lastCommentId = lastCommentChecked
+                lastSubmissionId = lastPostChecked
+
+            newCommentId = ""
+            newSubmissionId = ""
+
+            for c in self.session.subreddit(self.sub).comments():
+                if(newCommentId==""):
+                    newCommentId = c.id
+
+                if (c.id==lastCommentId):
+                    break
+
+                comments.append(c)
+
+            for s in self.session.subreddit(self.sub).new():
+                if(newSubmissionId==""):
+                    newSubmissionId = s.id
+
+                if(s.id==lastSubmissionId):
+                    break
+
+                submissions.append(s)
+
+            query = ("UPDATE botInfo SET lastPostChecked=%s, lastCommentChecked=%s")
+
+            cursor.execute(query, (newSubmissionId, newCommentId))
+
+            self.conn.commit()
+            cursor.close()
+
+            return comments, submissions
+        else:
+            print("Can't fetch data because the database isn't connected!")
 
 
     def __repr__(self):

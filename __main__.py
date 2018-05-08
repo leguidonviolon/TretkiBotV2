@@ -4,9 +4,13 @@ mainBot = bot.Bot(**connectionInfo.redditConnect)
 mainBot.login()
 
 try:
-    for c in mainBot.fetch_content():
+    comments, submissions = mainBot.fetch_content()
 
+    for c in comments:
         print(c)
-        #mainBot.send_comment("testing", c)
+
+    for s in submissions:
+        print(s)
+
 except:
     print("Error fetching data")
