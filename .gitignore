@@ -100,3 +100,6 @@ ENV/
 
 # sensible info
 connectionInfo.py
+
+#idea
+.idea
