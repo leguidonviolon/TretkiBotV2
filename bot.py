@@ -152,34 +152,34 @@ class Bot:
 
             cursor.execute(query)
 
-            for (lastCommentChecked, lastPostChecked) in cursor:
-                lastCommentId = lastCommentChecked
+            for (lastCommentChecked, lastPostChecked) in cursor: # we set fetch the last comment and submission the bot
+                lastCommentId = lastCommentChecked               # crawled
                 lastSubmissionId = lastPostChecked
 
             newCommentId = ""
             newSubmissionId = ""
 
             for c in self.session.subreddit(self.sub).comments():
-                if(newCommentId==""):
+                if(newCommentId==""): # if it's the first comment we fetch, we set it as a marker for next time
                     newCommentId = c.id
 
-                if (c.id==lastCommentId):
+                if (c.id==lastCommentId): # if this comment has already been fetched, it means we are now up to date
                     break
 
                 comments.append(c)
 
             for s in self.session.subreddit(self.sub).new():
-                if(newSubmissionId==""):
+                if(newSubmissionId==""): # same as above
                     newSubmissionId = s.id
 
-                if(s.id==lastSubmissionId):
+                if(s.id==lastSubmissionId): #same as above
                     break
 
                 submissions.append(s)
 
             query = ("UPDATE botInfo SET lastPostChecked=%s, lastCommentChecked=%s")
 
-            cursor.execute(query, (newSubmissionId, newCommentId))
+            cursor.execute(query, (newSubmissionId, newCommentId)) # we send these new markers to the database
 
             self.conn.commit()
             cursor.close()
@@ -203,7 +203,7 @@ class Bot:
 
             query = ("UPDATE users SET lastComment=%s WHERE username=%s")
 
-            cursor.execute(query, (commentId, user))
+            cursor.execute(query, (commentId, user)) # send the last comment id to the database for the comment's user
 
             self.conn.commit()
 
