@@ -7,10 +7,10 @@ try:
     comments, submissions = mainBot.fetch_content()
 
     for c in comments:
-        print(c)
+        mainBot.crawling_routine(c)
 
     for s in submissions:
-        print(s)
+        mainBot.crawling_routine(s)
 
 except:
     print("Error fetching data")

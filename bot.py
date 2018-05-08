@@ -13,15 +13,7 @@ class Bot:
 
         self.session = None  # the reddit instance
 
-        try:
-            self.conn = mysql.connector.connect(**connectionInfo.sqlConnect)
-        except mysql.connector.Error as e:
-            if(e.errno==errorcode.ER_ACCESS_DENIED_ERROR):
-                print("Wrong username/password combination")
-            elif(e.errno==errorcode.ER_BAD_DB_ERROR):
-                print("Database doesn't exist")
-            else:
-                print(e)
+        self.conn = self.connect_to_database()
 
     def login(self):
         """  Login to reddit with the bot.
@@ -70,20 +62,20 @@ class Bot:
                 self.log("Couldn't post to reddit")
             return "Couldn't post to reddit."
 
-    def make_mod_post(self, title, text, flair="", sticky=False):
+    def send_mod_post(self, title, text, flair="", sticky=False):
         """ Post a distinguished submission to the session's subreddit instance.
                 args:
                     title (string): The title of the post.
                     text (string): The body of the post.
                     flair (text): The flair of the submission.
-                    sticky (bool): required if we want to sticky the submission.
+                    sticky (bool): Required if we want to sticky the submission.
 
                 return:
                     p (submission): If the submission is sent successfully, it returns the submission's instance.
                     string: If the submission failed to be posted, we return an error.
         """
         try:
-            p = self.send_submission(title, text, True) #mod is set to true, so we don't log in send_submission
+            p = self.send_submission(title, text, True) #mod is set to true, so we don't save logs in send_submission
             p.mod.distinguish('yes')
             if(sticky==True):
                 p.mod.sticky()
@@ -94,27 +86,54 @@ class Bot:
             self.log("Couldn't post to reddit")
             return "Couldn't post to reddit."
 
-    def send_comment(self, text, c):
+    def send_comment(self, text, c, mod=False):
         """ Post a comment to the session's subreddit instance.
                 args:
                     text (string): The body of the comment.
                     c (submission): The submission or comment instance we want to reply to.
+                    mod (bool): Used by the make_mod_comment function.  If set to True, we
+                    don't log things in this function.
 
                 return:
                     p (comment): If the comment is sent successfully, it returns the comment's instance.
                     string: If the comment failed to be posted, we return an error.
         """
         try:
-            if(c.author!=self.username):
-                c.reply(text)
+            if(c.author!=self.username):  # we don't want the bot to reply to itself...
+                p = c.reply(text)
+                if(mod==False):  # then, we log the required information
+                    self.log("Posted comment with comment_id: " + p.fullname)
+                return p
             else:
-                print("Couldn't reply to own comment.")
+                return "Couldn't reply to own comment."
         except:
-            print("Couldn't comment.")
+            return "Couldn't comment."
 
 
-    def make_mod_comment(self, text, sticky=False):
-        pass
+    def send_mod_comment(self, text, c, sticky=False):
+        """ Post a distinguished comment to the session's subreddit instance.
+                args:
+                    text (string): The body of the comment.
+                    c (submission): The submission or comment instance we want to reply to.
+                    sticky (bool): Required if we want to sticky the comment.
+
+                return:
+                    p (comment): If the comment is sent successfully, it returns the comment's instance.
+                    string: If the comment failed to be posted, we return an error.
+                """
+        try:
+            p = self.send_comment(text, c, True)  # mod is set to true, so we don't save logs in send_comment
+            p.mod.distinguish(sticky=sticky)
+            #if (sticky == True):
+                #if(isinstance(c, praw.models.Submission)):
+                   # p.mod.sticky()
+                #else:
+                    #print("Can't sticky a comment that isn't top level.")
+            self.log("Posted mod comment with comment_id: " + p.fullname)  # we log here instead
+            return p
+        except:
+            self.log("Couldn't post to reddit")
+            return "Couldn't post to reddit."
 
     def fetch_content(self):
         """ Fetches all the last comments and submissions of the subreddit and returns two lists containing them.
@@ -165,11 +184,67 @@ class Bot:
             self.conn.commit()
             cursor.close()
 
-            return comments, submissions
         else:
-            print("Can't fetch data because the database isn't connected!")
+            print("Can't fetch data because you are not connected to the database!")
+
+        return comments, submissions
+
+    def crawling_routine(self, c):
+        """ This function does all the things we want to do on every comment or submission, like update each member's
+        last post and such.
+                args:
+                    c (comment):  The comment or submission to check
+        """
+
+        if(self.conn):
+            cursor = self.conn.cursor()
+            user = c.author.name
+            commentId = c.fullname
+
+            query = ("UPDATE users SET lastComment=%s WHERE username=%s")
+
+            cursor.execute(query, (commentId, user))
+
+            self.conn.commit()
 
 
+            cursor.close()
+
+        self.easter_eggs(c)
+
+    def connect_to_database(self):
+        """ Connects to the database.
+                return:
+                    conn (MySqlConnection): The connection to the MySQL database.
+                    False if the connection is unsuccessful"""
+        try:
+            conn = mysql.connector.connect(**connectionInfo.sqlConnect)
+            return conn
+        except mysql.connector.Error as e:
+            if(e.errno==errorcode.ER_ACCESS_DENIED_ERROR):
+                print("Wrong username/password combination")
+            elif(e.errno==errorcode.ER_BAD_DB_ERROR):
+                print("Database doesn't exist")
+            else:
+                print(e)
+            return False
+
+    def easter_eggs(self, c):
+        """ Passes a comment or submission to all the easter eggs to see if it triggers any.
+                args:
+                    c (comment): The comment or submission instance to test.
+        """
+        self.egg_negative_karma(c)
+
+    def egg_negative_karma(self, c):
+        """ If a comment or submission has negative karma, the bot teases the user.
+            args:
+                c (comment): The comment or submission to test.
+        """
+
+        if(c.score<0):
+            self.send_comment("Hey, you are one of the rare few who get to be downvoted "
+                              "to hell in /r/{}, congrats!".format(self.sub), c)
     def __repr__(self):
         self.__str__()
 
