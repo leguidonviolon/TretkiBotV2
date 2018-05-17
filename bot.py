@@ -1,5 +1,7 @@
-import praw, datetime, os, mysql.connector, connectionInfo
+import praw, datetime, os, mysql.connector, connectionInfo, time, timelyRun
 from mysql.connector import errorcode
+
+TIME_BEFORE_KICK = 180 #180 hours
 
 class Bot:
 
@@ -124,11 +126,6 @@ class Bot:
         try:
             p = self.send_comment(text, c, True)  # mod is set to true, so we don't save logs in send_comment
             p.mod.distinguish(sticky=sticky)
-            #if (sticky == True):
-                #if(isinstance(c, praw.models.Submission)):
-                   # p.mod.sticky()
-                #else:
-                    #print("Can't sticky a comment that isn't top level.")
             self.log("Posted mod comment with comment_id: " + p.fullname)  # we log here instead
             return p
         except:
@@ -185,7 +182,7 @@ class Bot:
             cursor.close()
 
         else:
-            print("Can't fetch data because you are not connected to the database!")
+            self.log("Can't fetch data because you are not connected to the database!")
 
         return comments, submissions
 
@@ -200,17 +197,19 @@ class Bot:
             cursor = self.conn.cursor()
             user = c.author.name
             commentId = c.fullname
+            commentDate = c.created_utc
 
-            query = ("UPDATE users SET lastComment=%s WHERE username=%s")
+            query = ("UPDATE users SET lastComment=%s, commentDate=%s WHERE username=%s")
 
-            cursor.execute(query, (commentId, user)) # send the last comment id to the database for the comment's user
-
+            cursor.execute(query, (commentId, str(commentDate), user))  # send the last comment id to the database for
+                                                                        # the comment's user
             self.conn.commit()
 
 
             cursor.close()
 
-        self.easter_eggs(c)
+        self.easter_eggs(c) #check for easter eggs
+        #self.commands(c) #check for commands
 
     def connect_to_database(self):
         """ Connects to the database.
@@ -222,12 +221,16 @@ class Bot:
             return conn
         except mysql.connector.Error as e:
             if(e.errno==errorcode.ER_ACCESS_DENIED_ERROR):
-                print("Wrong username/password combination")
+                self.log("Wrong username/password combination")
             elif(e.errno==errorcode.ER_BAD_DB_ERROR):
-                print("Database doesn't exist")
+                self.log("Database doesn't exist")
             else:
-                print(e)
+                self.log(e)
             return False
+
+    def timely_run(self):
+        run = timelyRun.TimelyRun(self.session, self.conn)
+        t = run.run()
 
     def easter_eggs(self, c):
         """ Passes a comment or submission to all the easter eggs to see if it triggers any.
